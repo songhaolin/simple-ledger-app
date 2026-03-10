@@ -1,10 +1,9 @@
 package com.ledger.service;
 
-import com.ledger.model.Transaction;
-import com.ledger.repository.TransactionRepository;
-import com.ledger.repository.LedgerRepository;
 import com.ledger.exception.BusinessException;
 import com.ledger.exception.BusinessException.ErrorCodes;
+import com.ledger.model.Transaction;
+import com.ledger.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -18,7 +17,6 @@ import java.util.Date;
 public class TransactionService {
 
     private final TransactionRepository transactionRepository;
-    private final LedgerRepository ledgerRepository;
 
     /**
      * 创建账单
@@ -83,6 +81,64 @@ public class TransactionService {
         transaction.setIsDeleted(false);
 
         // 6. 保存到数据库
+        return transactionRepository.save(transaction);
+    }
+
+    /**
+     * 更新账单
+     */
+    public Transaction updateTransaction(
+            String transactionId,
+            String userId,
+            Double amount,
+            String categoryId,
+            String subcategory,
+            Date date,
+            String note,
+            java.util.List<String> images
+    ) {
+        // 1. 查找账单
+        Transaction transaction = transactionRepository.findById(transactionId)
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCodes.INVALID_PARAM,
+                        "账单不存在"
+                ));
+
+        // 2. 验证权限（只有创建者可以更新）
+        if (!transaction.getUserId().equals(userId)) {
+            throw new BusinessException(
+                    ErrorCodes.INVALID_PARAM,
+                    "无权修改此账单"
+            );
+        }
+
+        // 3. 更新字段
+        if (amount != null && amount > 0) {
+            transaction.setAmount(amount);
+        }
+
+        if (categoryId != null && !categoryId.isEmpty()) {
+            transaction.setCategoryId(categoryId);
+            transaction.setCategoryName(subcategory);
+            transaction.setSubcategory(subcategory);
+        }
+
+        if (date != null) {
+            transaction.setDate(date);
+        }
+
+        if (note != null) {
+            transaction.setNote(note);
+        }
+
+        if (images != null && !images.isEmpty()) {
+            transaction.setImages(images);
+        }
+
+        // 4. 更新时间
+        transaction.setUpdatedAt(new Date());
+
+        // 5. 保存更新
         return transactionRepository.save(transaction);
     }
 
