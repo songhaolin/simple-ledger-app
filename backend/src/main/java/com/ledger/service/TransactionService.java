@@ -2,16 +2,13 @@ package com.ledger.service;
 
 import com.ledger.model.Transaction;
 import com.ledger.repository.TransactionRepository;
-import com.ledger.model.Ledger;
 import com.ledger.repository.LedgerRepository;
-import com.ledger.repository.UserRepository;
 import com.ledger.exception.BusinessException;
 import com.ledger.exception.BusinessException.ErrorCodes;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+
+import java.util.Date;
 
 /**
  * 账单服务
@@ -22,7 +19,6 @@ public class TransactionService {
 
     private final TransactionRepository transactionRepository;
     private final LedgerRepository ledgerRepository;
-    private final UserRepository userRepository;
 
     /**
      * 创建账单
@@ -34,7 +30,7 @@ public class TransactionService {
             Double amount,
             String categoryId,
             String subcategory,
-            java.util.Date date,
+            Date date,
             String note,
             java.util.List<String> images
     ) {
@@ -55,49 +51,63 @@ public class TransactionService {
         }
 
         // 3. 验证分类ID
-        if (categoryId == null) {
+        if (categoryId == null || categoryId.isEmpty()) {
             throw new BusinessException(
                     ErrorCodes.INVALID_PARAM,
                     "分类ID不能为空"
             );
         }
 
-        // 4. 创建账单对象
+        // 4. 验证类型
+        if (type == null || (!type.equals("income") && !type.equals("expense") && !type.equals("transfer"))) {
+            throw new BusinessException(
+                    ErrorCodes.INVALID_PARAM,
+                    "类型不正确"
+            );
+        }
+
+        // 5. 创建账单对象
         Transaction transaction = new Transaction();
         transaction.setLedgerId(ledgerId);
         transaction.setUserId(userId);
         transaction.setType(type);
         transaction.setAmount(amount);
         transaction.setCategoryId(categoryId);
+        transaction.setCategoryName(subcategory);
         transaction.setSubcategory(subcategory);
         transaction.setDate(date);
         transaction.setNote(note);
         transaction.setImages(images);
-        transaction.setCreatedAt(new java.util.Date());
-        transaction.setUpdatedAt(new java.util.Date());
+        transaction.setCreatedAt(new Date());
+        transaction.setUpdatedAt(new Date());
         transaction.setIsDeleted(false);
 
+        // 6. 保存到数据库
         return transactionRepository.save(transaction);
     }
 
     /**
      * 获取账单列表（分页）
      */
-    public Page<Transaction> getTransactions(
+    public org.springframework.data.domain.Page<Transaction> getTransactions(
             String ledgerId,
             int page,
             int size
     ) {
         // 计算起始日期（默认查询最近30天）
-        java.util.Date startDate = new java.util.Date(System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000);
-        java.util.Date endDate = new java.util.Date();
+        Date startDate = new Date(System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000);
+        Date endDate = new Date();
 
         // 创建分页和排序
-        PageRequest pageRequest = PageRequest.of(
-                page - 1,  // Spring Data 页码从0开始
-                size,
-                Sort.by(Sort.Direction.DESC, "date")
-        );
+        org.springframework.data.domain.PageRequest pageRequest =
+                org.springframework.data.domain.PageRequest.of(
+                        page - 1,  // Spring Data 页码从0开始
+                        size,
+                        org.springframework.data.domain.Sort.by(
+                                org.springframework.data.domain.Sort.Direction.DESC,
+                                "date"
+                        )
+                );
 
         return transactionRepository.findByLedgerIdAndDateBetweenOrderByDateDesc(
                 ledgerId,
