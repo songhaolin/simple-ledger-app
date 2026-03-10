@@ -15,6 +15,11 @@ spring:
     host: localhost
     port: 6379
 
+  # 密码加密
+  security:
+    bcrypt:
+      strength: 10
+
 # 服务配置
 server:
   port: 8080
@@ -24,7 +29,7 @@ server:
 # JWT 配置
 jwt:
   secret: your-secret-key-change-in-production
-  expiration: 604800000  # 7天 (毫秒)
+  expiration: 604800000  # 7天 (毫秒）
 
 # 日志配置
 logging:
