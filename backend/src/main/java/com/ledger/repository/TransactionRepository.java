@@ -29,4 +29,24 @@ public interface TransactionRepository extends MongoRepository<Transaction, Stri
      * 根据账本ID查询所有账单
      */
     List<Transaction> findByLedgerId(String ledgerId);
+
+    /**
+     * 根据分类ID和时间范围查询
+     */
+    Page<Transaction> findByCategoryIdAndDateBetweenOrderByDateDesc(
+            String categoryId,
+            Date startDate,
+            Date endDate,
+            Pageable pageable
+    );
+
+    /**
+     * 根据用户ID和时间范围查询
+     */
+    Page<Transaction> findByUserIdAndDateBetweenOrderByDateDesc(
+            String userId,
+            Date startDate,
+            Date endDate,
+            Pageable pageable
+    );
 }
