@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: ledger-backend
+
+  # MongoDB 配置
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: ledger
+      auto-index-creation: true
+
+  # Redis 配置
+  redis:
+    host: localhost
+    port: 6379
+
+# 服务配置
+server:
+  port: 8080
+  servlet:
+    context-path: /api/v1
+
+# JWT 配置
+jwt:
+  secret: your-secret-key-change-in-production
+  expiration: 604800000  # 7天 (毫秒)
+
+# 日志配置
+logging:
+  level:
+    com.ledger: DEBUG
+    org.springframework.web: INFO
