@@ -22,19 +22,34 @@ public class UserController {
      * 用户注册
      */
     @PostMapping("/register")
-    public Response<Map<String, String>> register(@RequestBody RegisterRequest request) {
+    public Response<Map<String, Object>> register(@RequestBody RegisterRequest request) {
         User user = userService.register(
                 request.getPhone(),
                 request.getPassword(),
                 request.getNickname()
         );
 
-        // 返回用户信息（暂时不生成JWT，简化实现）
-        Map<String, String> data = new HashMap<>();
+        // 生成Token
+        String token = jwtUtil.generateToken(user.getId(), user.getPhone());
+        String refreshToken = jwtUtil.generateRefreshToken(user.getId());
+
+        Map<String, Object> data = new HashMap<>();
         data.put("userId", user.getId());
-        // TODO: 生成JWT token
-        data.put("token", "temporary-token");
-        data.put("refreshToken", "temporary-refresh-token");
+        data.put("token", token);
+        data.put("refreshToken", refreshToken);
+
+        return Response.success(data);
+    }
+
+    /**
+     * 用户登录
+     */
+    @PostMapping("/login")
+    public Response<Map<String, Object>> login(@RequestBody LoginRequest request) {
+        Map<String, Object> data = userService.login(
+                request.getPhone(),
+                request.getPassword()
+        );
 
         return Response.success(data);
     }
@@ -47,5 +62,14 @@ public class UserController {
         private String phone;
         private String password;
         private String nickname;
+    }
+
+    /**
+     * 登录请求体
+     */
+    @lombok.Data
+    public static class LoginRequest {
+        private String phone;
+        private String password;
     }
 }

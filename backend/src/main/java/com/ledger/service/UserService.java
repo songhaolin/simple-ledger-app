@@ -3,11 +3,13 @@ package com.ledger.service;
 import com.ledger.exception.BusinessException;
 import com.ledger.model.User;
 import com.ledger.repository.UserRepository;
+import com.ledger.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 用户服务
@@ -18,6 +20,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final JwtUtil jwtUtil;
 
     /**
      * 用户注册
@@ -57,6 +60,48 @@ public class UserService {
         user.setIsActive(true);
 
         return userRepository.save(user);
+    }
+
+    /**
+     * 用户登录
+     */
+    public Map<String, Object> login(String phone, String password) {
+        // 1. 查找用户
+        User user = userRepository.findByPhone(phone);
+        if (user == null) {
+            throw new BusinessException(
+                "1004",
+                "用户不存在"
+            );
+        }
+
+        // 2. 验证密码
+        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
+            throw new BusinessException(
+                "1004",
+                "密码错误"
+            );
+        }
+
+        // 3. 更新最后登录时间
+        user.setLastLoginAt(new Date());
+        userRepository.save(user);
+
+        // 4. 生成Token
+        String token = jwtUtil.generateToken(user.getId(), user.getPhone());
+        String refreshToken = jwtUtil.generateRefreshToken(user.getId());
+
+        // 5. 返回用户信息和Token
+        Map<String, Object> data = new HashMap<>();
+        data.put("userId", user.getId());
+        data.put("token", token);
+        data.put("refreshToken", refreshToken);
+        data.put("user", Map.of(
+            "nickname", user.getNickname(),
+            "avatar", user.getAvatar()
+        ));
+
+        return data;
     }
 
     /**

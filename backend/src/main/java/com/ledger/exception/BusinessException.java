@@ -22,6 +22,7 @@ public class BusinessException extends RuntimeException {
         public static final String INVALID_PHONE = "1001";
         public static final String INVALID_PASSWORD = "1002";
         public static final String PHONE_EXISTS = "1003";
+        public static final String WRONG_PASSWORD = "1004";
         public static final String INVALID_PARAM = "4001";
     }
 }
