@@ -8,19 +8,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
- * 用户注册测试 - TDD 示例
+ * 用户登录测试 - TDD 示例
  * 
- * 测试目标：POST /api/v1/users/register
+ * 测试目标：POST /api/v1/users/login
  * 场景：
- * 1. 正常注册
- * 2. 手机号格式错误
- * 3. 手机号已注册
- * 4. 密码格式错误
+ * 1. 正常登录
+ * 2. 用户不存在
+ * 3. 密码错误
+ * 4. 缺少参数
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -38,118 +39,105 @@ public class UserControllerTest {
     }
 
     /**
-     * 测试1：正常注册
+     * 测试1：正常登录
      * 
      * 预期：
      * - 状态码 200
      * - 返回 success: true
-     * - 返回 userId, token, refreshToken
+     * - 返回 userId, token, refreshToken, user信息
      */
     @Test
-    public void shouldRegisterSuccessfully() throws Exception {
-        mockMvc.perform(post("/users/register")
+    public void shouldLoginSuccessfully() throws Exception {
+        // 先注册一个用户
+        String phone = "13800138000";
+        String password = "Password123!";
+        
+        // 直接插入用户（模拟注册）
+        User user = new User();
+        user.setPhone(phone);
+        user.setPasswordHash(new BCryptPasswordEncoder().encode(password));
+        user.setNickname("张三");
+        user.setCreatedAt(new java.util.Date());
+        user.setUpdatedAt(new java.util.Date());
+        user.setIsActive(true);
+        userRepository.save(user);
+
+        mockMvc.perform(post("/users/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+                        .content(String.format("""
 {
-    "phone": "13800138000",
-    "password": "Password123!",
-    "nickname": "张三"
+    "phone": "%s",
+    "password": "%s"
 }
-"""))
+""", phone, password)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.userId").exists())
                 .andExpect(jsonPath("$.data.token").exists())
-                .andExpect(jsonPath("$.data.refreshToken").exists());
+                .andExpect(jsonPath("$.data.refreshToken").exists())
+                .andExpect(jsonPath("$.data.user.nickname").value("张三"));
     }
 
     /**
-     * 测试2：手机号格式错误
+     * 测试2：用户不存在
      * 
      * 预期：
-     * - 状态码 400
-     * - 返回错误码 1001
+     * - 状态码 401
+     * - 返回错误码 1004
      */
     @Test
-    public void shouldFailWithInvalidPhone() throws Exception {
-        mockMvc.perform(post("/users/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-{
-    "phone": "123",
-    "password": "Password123!",
-    "nickname": "张三"
-}
-"""))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.code").value("1001"))
-                .andExpect(jsonPath("$.error.message").value("手机号格式错误"));
-    }
-
-    /**
-     * 测试3：手机号已注册
-     * 
-     * 预期：
-     * - 状态码 400
-     * - 返回错误码 1003
-     */
-    @Test
-    public void shouldFailWithDuplicatePhone() throws Exception {
-        // 先注册一个用户
-        mockMvc.perform(post("/users/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-{
-    "phone": "13800138000",
-    "password": "Password123!",
-    "nickname": "张三"
-}
-"""))
-                .andExpect(status().isOk());
-
-        // 再次注册相同手机号
-        mockMvc.perform(post("/users/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-{
-    "phone": "13800138000",
-    "password": "Password456!",
-    "nickname": "李四"
-}
-"""))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.code").value("1003"))
-                .andExpect(jsonPath("$.error.message").value("手机号已注册"));
-    }
-
-    /**
-     * 测试4：密码格式错误
-     * 
-     * 预期：
-     * - 状态码 400
-     * - 返回错误码 1002
-     */
-    @Test
-    public void shouldFailWithInvalidPassword() throws Exception {
-        mockMvc.perform(post("/users/register")
+    public void shouldFailWithUserNotFound() throws Exception {
+        mockMvc.perform(post("/users/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
 {
     "phone": "13900139000",
-    "password": "123",
-    "nickname": "王五"
+    "password": "Password123!"
 }
 """))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.code").value("1002"))
-                .andExpect(jsonPath("$.error.message").value("密码格式错误"));
+                .andExpect(jsonPath("$.error.code").value("1004"))
+                .andExpect(jsonPath("$.error.message").value("密码错误"));
     }
 
     /**
-     * 测试5：缺少必填字段
+     * 测试3：密码错误
+     * 
+     * 预期：
+     * - 状态码 401
+     * - 返回错误码 1004
+     */
+    @Test
+    public void shouldFailWithWrongPassword() throws Exception {
+        // 先注册一个用户
+        String phone = "13800138000";
+        User user = new User();
+        user.setPhone(phone);
+        user.setPasswordHash(new BCryptPasswordEncoder().encode("CorrectPassword123!"));
+        user.setNickname("张三");
+        user.setCreatedAt(new java.util.Date());
+        user.setUpdatedAt(new java.util.Date());
+        user.setIsActive(true);
+        userRepository.save(user);
+
+        // 使用错误密码登录
+        mockMvc.perform(post("/users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+{
+    "phone": "13800138000",
+    "password": "WrongPassword123!"
+}
+"""))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("1004"))
+                .andExpect(jsonPath("$.error.message").value("密码错误"));
+    }
+
+    /**
+     * 测试4：缺少参数
      * 
      * 预期：
      * - 状态码 400
@@ -157,7 +145,7 @@ public class UserControllerTest {
      */
     @Test
     public void shouldFailWithMissingFields() throws Exception {
-        mockMvc.perform(post("/users/register")
+        mockMvc.perform(post("/users/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
 {
