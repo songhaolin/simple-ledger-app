@@ -2,9 +2,7 @@ package com.ledger.controller;
 
 import com.ledger.model.Transaction;
 import com.ledger.service.TransactionService;
-import com.ledger.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,8 +13,8 @@ import java.util.Map;
  * 账单控制器
  */
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/transactions")
+@RequiredArgsConstructor
 public class TransactionController {
 
     private final TransactionService transactionService;
@@ -39,7 +37,7 @@ public class TransactionController {
                 request.getAmount(),
                 request.getCategoryId(),
                 request.getSubcategory(),
-                request.getDate(),
+                request.getDate() != null ? request.getDate() : new java.util.Date(),
                 request.getNote(),
                 request.getImages()
         );
@@ -64,33 +62,42 @@ public class TransactionController {
         String userId = (String) httpRequest.getAttribute("userId");
 
         // 查询账单列表
-        Page<Transaction> transactionPage = transactionService.getTransactions(
+        org.springframework.data.domain.Page<Transaction> transactionPage = transactionService.getTransactions(
                 ledgerId,
                 page,
                 size
         );
 
         // 封装分页结果
-        PagedResult<Transaction> result = new PagedResult<>();
-        result.setContent(transactionPage.getContent());
-        result.setCurrentPage(page);
-        result.setTotalElements(transactionPage.getTotalElements());
-        result.setTotalPages(transactionPage.getTotalPages());
-        result.setPageSize(size);
+        PagedResult<Transaction> result = PagedResult.fromPage(transactionPage);
 
         return Response.success(result);
     }
 
     /**
-     * 分页结果
+     * 更新账单
      */
-    @lombok.Data
-    public static class PagedResult<T> {
-        private java.util.List<T> content;
-        private int currentPage;
-        private long totalElements;
-        private int totalPages;
-        private int pageSize;
+    @PutMapping("/{transactionId}")
+    public Response<Transaction> updateTransaction(
+            @PathVariable String transactionId,
+            @RequestBody UpdateTransactionRequest request,
+            HttpServletRequest httpRequest) {
+        // 从请求属性中获取UserId
+        String userId = (String) httpRequest.getAttribute("userId");
+
+        // 更新账单
+        Transaction transaction = transactionService.updateTransaction(
+                transactionId,
+                userId,
+                request.getAmount(),
+                request.getCategoryId(),
+                request.getSubcategory(),
+                request.getDate() != null ? request.getDate() : new java.util.Date(),
+                request.getNote(),
+                request.getImages()
+        );
+
+        return Response.success(transaction);
     }
 
     /**
@@ -106,5 +113,43 @@ public class TransactionController {
         private java.util.Date date;
         private String note;
         private java.util.List<String> images;
+    }
+
+    /**
+     * 更新账单请求体
+     */
+    @lombok.Data
+    public static class UpdateTransactionRequest {
+        private Double amount;
+        private String categoryId;
+        private String subcategory;
+        private java.util.Date date;
+        private String note;
+        private java.util.List<String> images;
+    }
+
+    /**
+     * 分页结果
+     */
+    @lombok.Data
+    public static class PagedResult<T> {
+        private java.util.List<T> content;
+        private int currentPage;
+        private long totalElements;
+        private int totalPages;
+        private int pageSize;
+
+        /**
+         * 从 Spring Data Page 创建
+         */
+        public static <T> PagedResult<T> fromPage(org.springframework.data.domain.Page<T> page) {
+            PagedResult<T> result = new PagedResult<>();
+            result.setContent(page.getContent());
+            result.setCurrentPage(page.getNumber() + 1); // 页码从1开始
+            result.setTotalElements(page.getTotalElements());
+            result.setTotalPages(page.getTotalPages());
+            result.setPageSize(page.getSize());
+            return result;
+        }
     }
 }
