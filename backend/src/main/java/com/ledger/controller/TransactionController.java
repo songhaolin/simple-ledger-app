@@ -2,7 +2,7 @@ package com.ledger.controller;
 
 import com.ledger.model.Transaction;
 import com.ledger.service.TransactionService;
-import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,16 +14,19 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/transactions")
-@RequiredArgsConstructor
 public class TransactionController {
 
     private final TransactionService transactionService;
+
+    public TransactionController(TransactionService transactionService) {
+        this.transactionService = transactionService;
+    }
 
     /**
      * 创建账单
      */
     @PostMapping
-    public Response<Map<String, String>> createTransaction(
+    public ResponseEntity<ApiResponse<Map<String, String>>> createTransaction(
             @RequestBody CreateTransactionRequest request,
             HttpServletRequest httpRequest) {
         // 从请求属性中获取UserId（JWT拦截器已验证）
@@ -46,14 +49,14 @@ public class TransactionController {
         Map<String, String> data = new HashMap<>();
         data.put("transactionId", transaction.getId());
 
-        return Response.success(data);
+        return ApiResponse.success(data);
     }
 
     /**
      * 获取账单列表（分页）
      */
     @GetMapping
-    public Response<PagedResult<Transaction>> getTransactions(
+    public ResponseEntity<ApiResponse<PagedResult<Transaction>>> getTransactions(
             @RequestParam(required = true) String ledgerId,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -71,14 +74,14 @@ public class TransactionController {
         // 封装分页结果
         PagedResult<Transaction> result = PagedResult.fromPage(transactionPage);
 
-        return Response.success(result);
+        return ApiResponse.success(result);
     }
 
     /**
      * 更新账单
      */
     @PutMapping("/{transactionId}")
-    public Response<Transaction> updateTransaction(
+    public ResponseEntity<ApiResponse<Transaction>> updateTransaction(
             @PathVariable String transactionId,
             @RequestBody UpdateTransactionRequest request,
             HttpServletRequest httpRequest) {
@@ -97,13 +100,45 @@ public class TransactionController {
                 request.getImages()
         );
 
-        return Response.success(transaction);
+        return ApiResponse.success(transaction);
+    }
+
+    /**
+     * 删除账单（软删除）
+     */
+    @DeleteMapping("/{transactionId}")
+    public ResponseEntity<ApiResponse<String>> deleteTransaction(
+            @PathVariable String transactionId,
+            HttpServletRequest httpRequest) {
+        // 从请求属性中获取UserId
+        String userId = (String) httpRequest.getAttribute("userId");
+
+        // 删除账单
+        transactionService.deleteTransaction(transactionId, userId);
+
+        // 返回成功消息
+        return ApiResponse.success("删除成功");
+    }
+
+    /**
+     * 获取账单详情（功能9）
+     */
+    @GetMapping("/{transactionId}")
+    public ResponseEntity<ApiResponse<Transaction>> getTransaction(
+            @PathVariable String transactionId,
+            HttpServletRequest httpRequest) {
+        // 从请求属性中获取UserId
+        String userId = (String) httpRequest.getAttribute("userId");
+
+        // 获取账单详情
+        Transaction transaction = transactionService.getTransaction(transactionId, userId);
+
+        return ApiResponse.success(transaction);
     }
 
     /**
      * 创建账单请求体
      */
-    @lombok.Data
     public static class CreateTransactionRequest {
         private String ledgerId;
         private String type;
@@ -113,12 +148,75 @@ public class TransactionController {
         private java.util.Date date;
         private String note;
         private java.util.List<String> images;
+
+        public String getLedgerId() {
+            return ledgerId;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public Double getAmount() {
+            return amount;
+        }
+
+        public String getCategoryId() {
+            return categoryId;
+        }
+
+        public String getSubcategory() {
+            return subcategory;
+        }
+
+        public java.util.Date getDate() {
+            return date;
+        }
+
+        public String getNote() {
+            return note;
+        }
+
+        public java.util.List<String> getImages() {
+            return images;
+        }
+
+        public void setLedgerId(String ledgerId) {
+            this.ledgerId = ledgerId;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
+
+        public void setAmount(Double amount) {
+            this.amount = amount;
+        }
+
+        public void setCategoryId(String categoryId) {
+            this.categoryId = categoryId;
+        }
+
+        public void setSubcategory(String subcategory) {
+            this.subcategory = subcategory;
+        }
+
+        public void setDate(java.util.Date date) {
+            this.date = date;
+        }
+
+        public void setNote(String note) {
+            this.note = note;
+        }
+
+        public void setImages(java.util.List<String> images) {
+            this.images = images;
+        }
     }
 
     /**
      * 更新账单请求体
      */
-    @lombok.Data
     public static class UpdateTransactionRequest {
         private Double amount;
         private String categoryId;
@@ -126,18 +224,107 @@ public class TransactionController {
         private java.util.Date date;
         private String note;
         private java.util.List<String> images;
+
+        public Double getAmount() {
+            return amount;
+        }
+
+        public String getCategoryId() {
+            return categoryId;
+        }
+
+        public String getSubcategory() {
+            return subcategory;
+        }
+
+        public java.util.Date getDate() {
+            return date;
+        }
+
+        public String getNote() {
+            return note;
+        }
+
+        public java.util.List<String> getImages() {
+            return images;
+        }
+
+        public void setAmount(Double amount) {
+            this.amount = amount;
+        }
+
+        public void setCategoryId(String categoryId) {
+            this.categoryId = categoryId;
+        }
+
+        public void setSubcategory(String subcategory) {
+            this.subcategory = subcategory;
+        }
+
+        public void setDate(java.util.Date date) {
+            this.date = date;
+        }
+
+        public void setNote(String note) {
+            this.note = note;
+        }
+
+        public void setImages(java.util.List<String> images) {
+            this.images = images;
+        }
     }
 
     /**
      * 分页结果
      */
-    @lombok.Data
     public static class PagedResult<T> {
         private java.util.List<T> content;
         private int currentPage;
         private long totalElements;
         private int totalPages;
         private int pageSize;
+
+        // Getters
+        public java.util.List<T> getContent() {
+            return content;
+        }
+
+        public int getCurrentPage() {
+            return currentPage;
+        }
+
+        public long getTotalElements() {
+            return totalElements;
+        }
+
+        public int getTotalPages() {
+            return totalPages;
+        }
+
+        public int getPageSize() {
+            return pageSize;
+        }
+
+        // Setters
+        public void setContent(java.util.List<T> content) {
+            this.content = content;
+        }
+
+        public void setCurrentPage(int currentPage) {
+            this.currentPage = currentPage;
+        }
+
+        public void setTotalElements(long totalElements) {
+            this.totalElements = totalElements;
+        }
+
+        public void setTotalPages(int totalPages) {
+            this.totalPages = totalPages;
+        }
+
+        public void setPageSize(int pageSize) {
+            this.pageSize = pageSize;
+        }
 
         /**
          * 从 Spring Data Page 创建

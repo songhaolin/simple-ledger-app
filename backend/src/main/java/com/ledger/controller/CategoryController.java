@@ -2,7 +2,7 @@ package com.ledger.controller;
 
 import com.ledger.model.Category;
 import com.ledger.service.CategoryService;
-import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -11,11 +11,14 @@ import java.util.List;
  * 分类控制器
  */
 @RestController
-@RequiredArgsConstructor
-@RequestMapping
+@RequestMapping("/categories")
 public class CategoryController {
 
     private final CategoryService categoryService;
+
+    public CategoryController(CategoryService categoryService) {
+        this.categoryService = categoryService;
+    }
 
     /**
      * 获取分类列表
@@ -24,9 +27,9 @@ public class CategoryController {
      * @return 分类列表
      */
     @GetMapping
-    public Response<List<Category>> getCategories(
+    public ResponseEntity<ApiResponse<List<Category>>> getCategories(
             @RequestParam(required = false) String type) {
         List<Category> categories = categoryService.getCategories(type);
-        return Response.success(categories);
+        return ApiResponse.success(categories);
     }
 }

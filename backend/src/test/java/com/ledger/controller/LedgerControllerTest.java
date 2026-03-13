@@ -11,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
@@ -20,7 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * 账本控制器测试 - TDD 示例
- * 
+ *
  * 测试目标：GET /api/v1/ledgers
  * 场景：
  * 1. 获取用户所有账本（正常）
@@ -39,6 +40,9 @@ public class LedgerControllerTest {
 
     @Autowired
     private LedgerRepository ledgerRepository;
+
+    @Autowired
+    private JwtUtil jwtUtil;
 
     @BeforeEach
     public void setup() {
@@ -81,7 +85,7 @@ public class LedgerControllerTest {
         ledgerRepository.save(ledger);
 
         // 生成Token
-        String token = new JwtUtil().generateToken(user.getId(), user.getPhone());
+        String token = jwtUtil.generateToken(user.getId(), user.getPhone());
 
         mockMvc.perform(get("/ledgers")
                         .header("Authorization", "Bearer " + token)

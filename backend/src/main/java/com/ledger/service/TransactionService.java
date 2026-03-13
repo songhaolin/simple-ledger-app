@@ -4,7 +4,6 @@ import com.ledger.exception.BusinessException;
 import com.ledger.exception.BusinessException.ErrorCodes;
 import com.ledger.model.Transaction;
 import com.ledger.repository.TransactionRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
@@ -13,10 +12,13 @@ import java.util.Date;
  * 账单服务
  */
 @Service
-@RequiredArgsConstructor
 public class TransactionService {
 
     private final TransactionRepository transactionRepository;
+
+    public TransactionService(TransactionRepository transactionRepository) {
+        this.transactionRepository = transactionRepository;
+    }
 
     /**
      * 创建账单
@@ -113,7 +115,13 @@ public class TransactionService {
         }
 
         // 3. 更新字段
-        if (amount != null && amount > 0) {
+        if (amount != null) {
+            if (amount <= 0) {
+                throw new BusinessException(
+                        ErrorCodes.INVALID_PARAM,
+                        "金额必须大于0"
+                );
+            }
             transaction.setAmount(amount);
         }
 
@@ -171,5 +179,79 @@ public class TransactionService {
                 endDate,
                 pageRequest
         );
+    }
+
+    /**
+     * 删除账单（软删除）
+     */
+    public void deleteTransaction(
+            String transactionId,
+            String userId
+    ) {
+        // 1. 查找账单
+        Transaction transaction = transactionRepository.findById(transactionId)
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCodes.INVALID_PARAM,
+                        "账单不存在"
+                ));
+
+        // 2. 验证权限（只有创建者可以删除）
+        if (!transaction.getUserId().equals(userId)) {
+            throw new BusinessException(
+                    ErrorCodes.INVALID_PARAM,
+                    "无权删除此账单"
+            );
+        }
+
+        // 3. 检查是否已删除
+        if (transaction.getIsDeleted()) {
+            throw new BusinessException(
+                    ErrorCodes.INVALID_PARAM,
+                    "账单已被删除"
+            );
+        }
+
+        // 4. 软删除（标记为已删除）
+        transaction.setIsDeleted(true);
+        transaction.setUpdatedAt(new Date());
+
+        // 5. 保存更新
+        transactionRepository.save(transaction);
+    }
+
+    /**
+     * 获取账单详情
+     */
+    public Transaction getTransaction(
+            String transactionId,
+            String userId
+    ) {
+        // 1. 参数验证
+        if (userId == null || userId.isEmpty()) {
+            throw new BusinessException(
+                    ErrorCodes.INVALID_PARAM,
+                    "用户ID不能为空"
+            );
+        }
+
+        // 2. 查找账单
+        Transaction transaction = transactionRepository.findById(transactionId)
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCodes.INVALID_PARAM,
+                        "账单不存在"
+                ));
+
+        // 3. 验证权限（只检查是否是创建者）
+        // TODO: 需要检查账本类型和成员关系
+        // 简化版本：只检查是否是创建者
+        String transactionUserId = transaction.getUserId();
+        if (transactionUserId == null || !transactionUserId.equals(userId)) {
+            throw new BusinessException(
+                    ErrorCodes.INVALID_PARAM,
+                    "无权查看此账单"
+            );
+        }
+
+        return transaction;
     }
 }

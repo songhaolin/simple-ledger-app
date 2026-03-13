@@ -6,6 +6,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -15,7 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * 用户登录测试 - TDD 示例
- * 
+ *
  * 测试目标：POST /api/v1/users/login
  * 场景：
  * 1. 正常登录
@@ -97,8 +98,8 @@ public class UserControllerTest {
 """))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.code").value("1004"))
-                .andExpect(jsonPath("$.error.message").value("密码错误"));
+                .andExpect(jsonPath("$.code").value("1004"))
+                .andExpect(jsonPath("$.message").value("手机号或密码错误"));
     }
 
     /**
@@ -132,8 +133,8 @@ public class UserControllerTest {
 """))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.code").value("1004"))
-                .andExpect(jsonPath("$.error.message").value("密码错误"));
+                .andExpect(jsonPath("$.code").value("1004"))
+                .andExpect(jsonPath("$.message").value("手机号或密码错误"));
     }
 
     /**
@@ -154,6 +155,6 @@ public class UserControllerTest {
 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.code").value("4001"));
+                .andExpect(jsonPath("$.code").value("4001"));
     }
 }
