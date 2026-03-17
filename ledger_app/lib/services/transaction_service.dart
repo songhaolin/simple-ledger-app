@@ -71,13 +71,18 @@ class TransactionService {
 
   // 获取账单列表
   Future<ApiResponse<Map<String, dynamic>>> getTransactions({
-    required String ledgerId,
-    int page = 1,
-    int limit = 20,
+    String? ledgerId,  // 改为可选
+    int? page,
+    int? limit,
   }) async {
     try {
+      String queryParams = '?page=${page ?? 1}&limit=${limit ?? 20}';
+      if (ledgerId != null) {
+        queryParams += '&ledgerId=$ledgerId';
+      }
+
       final response = await _apiService.get(
-        '/transactions?ledgerId=$ledgerId&page=$page&limit=$limit',
+        '/transactions$queryParams',
       );
       final jsonResponse = jsonDecode(response.body);
 

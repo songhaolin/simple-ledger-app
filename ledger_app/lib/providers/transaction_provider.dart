@@ -33,6 +33,14 @@ class TransactionProvider with ChangeNotifier {
     }
   }
 
+  // 设置账单列表（用于个人模式）
+  void setTransactions(List<Transaction> transactions) {
+    _transactions = transactions;
+    _errorMessage = '';
+    _isLoading = false;
+    notifyListeners();
+  }
+
   // 加载账单列表
   Future<void> loadTransactions() async {
     if (_currentLedger == null) return;

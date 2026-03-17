@@ -78,7 +78,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildPersonalMode() {
-    return TransactionListScreen();
+    return const TransactionListScreen(
+      isPersonalMode: true,
+      selectedLedger: null,
+    );
   }
 
   Widget _buildFamilyMode() {
@@ -90,7 +93,6 @@ class _HomeScreenState extends State<HomeScreen> {
           setState(() {
             _currentLedger = ledger;
           });
-          context.read<TransactionProvider>().setCurrentLedger(ledger);
         },
         onCreateLedger: () async {
           await _showCreateLedgerDialog();
@@ -100,7 +102,10 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       );
     } else {
-      return TransactionListScreen();
+      return TransactionListScreen(
+        isPersonalMode: false,
+        selectedLedger: _currentLedger,
+      );
     }
   }
 

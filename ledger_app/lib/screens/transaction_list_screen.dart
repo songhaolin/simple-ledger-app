@@ -1,34 +1,78 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:ledger_app/models/transaction.dart';
+import 'package:ledger_app/models/ledger.dart';
 import 'package:ledger_app/providers/transaction_provider.dart';
+import 'package:ledger_app/services/transaction_service.dart';
 import 'package:provider/provider.dart';
 
 class TransactionListScreen extends StatefulWidget {
-  const TransactionListScreen({super.key});
+  final bool isPersonalMode;
+  final Ledger? selectedLedger;
+
+  const TransactionListScreen({
+    super.key,
+    this.isPersonalMode = false,
+    this.selectedLedger,
+  });
 
   @override
   State<TransactionListScreen> createState() => _TransactionListScreenState();
 }
 
 class _TransactionListScreenState extends State<TransactionListScreen> {
+  final TransactionService _transactionService = TransactionService();
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<TransactionProvider>().loadTransactions();
-    });
+    if (widget.isPersonalMode) {
+      _loadPersonalTransactions();
+    } else if (widget.selectedLedger != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        context.read<TransactionProvider>().setCurrentLedger(widget.selectedLedger!);
+      });
+    }
+  }
+
+  Future<void> _loadPersonalTransactions() async {
+    try {
+      final response = await _transactionService.getTransactions(
+        ledgerId: null,  // 个人模式：ledgerId 为 null
+        page: 1,
+        limit: 100,
+      );
+      if (response.isSuccess && response.data != null) {
+        context.read<TransactionProvider>().setTransactions(
+          (response.data!['transactions'] as List)
+              .map((e) => Transaction.fromJson(e))
+              .toList(),
+        );
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(response.message)),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('加载失败: $e')),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('账单列表'),
+        title: Text(widget.isPersonalMode ? '我的账单' : '账单列表'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () {
+            onPressed: widget.isPersonalMode ? _loadPersonalTransactions : () {
               context.read<TransactionProvider>().loadTransactions();
             },
           ),
@@ -49,13 +93,18 @@ class _TransactionListScreenState extends State<TransactionListScreen> {
                   const SizedBox(height: 16),
                   Text(
                     provider.errorMessage,
-                    style: const TextStyle(color: Colors.red),
+                    style: const TextStyle(color: Colors.red, fontSize: 16),
+                    textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () {
                       provider.clearError();
-                      provider.loadTransactions();
+                      if (widget.isPersonalMode) {
+                        _loadPersonalTransactions();
+                      } else {
+                        provider.loadTransactions();
+                      }
                     },
                     child: const Text('重试'),
                   ),
@@ -84,7 +133,9 @@ class _TransactionListScreenState extends State<TransactionListScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '点击右下角 + 添加第一笔账单',
+                    widget.isPersonalMode
+                        ? '开始记录第一笔账单吧'
+                        : '账本还没有账单记录',
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey.shade400,
@@ -96,13 +147,13 @@ class _TransactionListScreenState extends State<TransactionListScreen> {
           }
 
           return ListView.builder(
+            padding: const EdgeInsets.symmetric(vertical: 8),
             itemCount: provider.transactions.length,
             itemBuilder: (context, index) {
               final transaction = provider.transactions[index];
               return _TransactionItem(
                 transaction: transaction,
                 onTap: () {
-                  // 编辑账单
                   Navigator.of(context).pushNamed(
                     '/edit-transaction',
                     arguments: transaction,
@@ -116,6 +167,14 @@ class _TransactionListScreenState extends State<TransactionListScreen> {
           );
         },
       ),
+      floatingActionButton: widget.isPersonalMode
+          ? FloatingActionButton(
+              onPressed: () {
+                Navigator.of(context).pushNamed('/add-transaction');
+              },
+              child: const Icon(Icons.add),
+            )
+          : null, // 家庭模式不显示加号
     );
   }
 
@@ -164,7 +223,7 @@ class _TransactionItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isExpense = transaction.type == 2;
+    final isExpense = transaction.type == 'expense';
     final color = isExpense ? Colors.red : Colors.green;
     final icon = isExpense ? Icons.arrow_downward : Icons.arrow_upward;
 
