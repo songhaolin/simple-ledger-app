@@ -25,10 +25,12 @@ class TransactionProvider with ChangeNotifier {
   Map<String, dynamic> get statistics => _statistics;
 
   // 设置当前账本
-  void setCurrentLedger(Ledger ledger) {
+  void setCurrentLedger(Ledger? ledger) {
     _currentLedger = ledger;
     notifyListeners();
-    loadTransactions();
+    if (ledger != null) {
+      loadTransactions();
+    }
   }
 
   // 加载账单列表

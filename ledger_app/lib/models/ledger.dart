@@ -1,27 +1,34 @@
 class Ledger {
   final String id;
   final String name;
-  final String? icon;
-  final int type; // 1: 个人, 2: 家庭
-  final DateTime createTime;
+  final String type;
+  final String ownerId;
+  final int budget;
+  final String currency;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   Ledger({
     required this.id,
     required this.name,
-    this.icon,
     required this.type,
-    required this.createTime,
+    required this.ownerId,
+    required this.budget,
+    required this.currency,
+    required this.createdAt,
+    required this.updatedAt,
   });
 
   factory Ledger.fromJson(Map<String, dynamic> json) {
     return Ledger(
-      id: json['id'] ?? '',
+      id: json['id'] ?? json['ledgerId'] ?? '',
       name: json['name'] ?? '',
-      icon: json['icon'],
-      type: json['type'] ?? 1,
-      createTime: json['createTime'] != null
-          ? DateTime.parse(json['createTime'])
-          : DateTime.now(),
+      type: json['type'] ?? 'personal',
+      ownerId: json['ownerId'] ?? '',
+      budget: json['budget'] ?? 0,
+      currency: json['currency'] ?? 'CNY',
+      createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
+      updatedAt: DateTime.parse(json['updatedAt'] ?? DateTime.now().toIso8601String()),
     );
   }
 
@@ -29,11 +36,12 @@ class Ledger {
     return {
       'id': id,
       'name': name,
-      'icon': icon,
       'type': type,
-      'createTime': createTime.toIso8601String(),
+      'ownerId': ownerId,
+      'budget': budget,
+      'currency': currency,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
     };
   }
-
-  String get typeText => type == 1 ? '个人' : '家庭';
 }

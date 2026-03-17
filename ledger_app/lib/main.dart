@@ -4,6 +4,7 @@ import 'package:ledger_app/screens/login_screen.dart';
 import 'package:ledger_app/screens/transaction_list_screen.dart';
 import 'package:ledger_app/screens/add_edit_transaction_screen.dart';
 import 'package:ledger_app/screens/statistics_screen.dart';
+import 'package:ledger_app/screens/ledger_list_screen.dart';
 import 'package:ledger_app/providers/transaction_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -37,6 +38,7 @@ class MyApp extends StatelessWidget {
           '/login': (context) => const LoginScreen(),
           '/home': (context) => const HomeScreen(),
           '/transactions': (context) => const TransactionListScreen(),
+          '/ledgers': (context) => const LedgerListScreen(),
           '/add-transaction': (context) => const AddEditTransactionScreen(),
           '/edit-transaction': (context) => const AddEditTransactionScreen(),
           '/statistics': (context) => const StatisticsScreen(),

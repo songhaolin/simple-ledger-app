@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ledger_app/models/api_response.dart';
 import 'package:ledger_app/models/user.dart';
 import 'package:ledger_app/services/auth_service.dart';
 
@@ -52,8 +53,22 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
 
       if (response.isSuccess) {
-        // 登录/注册成功，跳转到主页
-        Navigator.of(context).pushReplacementNamed('/home');
+        if (_isLogin) {
+          // 登录成功，直接跳转到主页
+          if (mounted) {
+            Navigator.of(context).pushReplacementNamed('/home');
+          }
+        } else {
+          // 注册成功，显示提示并切换到登录模式
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('注册成功！请登录')),
+          );
+          setState(() {
+            _isLogin = true;
+            _phoneController.clear();
+            _passwordController.clear();
+          });
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(response.message)),
@@ -113,6 +128,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _passwordController,
+                  key: const ValueKey('password_field'),
                   decoration: const InputDecoration(
                     labelText: '密码',
                     border: OutlineInputBorder(),
