@@ -68,7 +68,11 @@ public class TransactionService {
 
         // 5. 创建账单对象
         Transaction transaction = new Transaction();
-        transaction.setLedgerId(ledgerId);
+        // 个人记账（ledgerId 为空）不关联账本
+        // 家庭记账（ledgerId 不为空）关联账本
+        if (ledgerId != null && !ledgerId.isEmpty()) {
+            transaction.setLedgerId(ledgerId);
+        }
         transaction.setUserId(userId);
         transaction.setType(type);
         transaction.setAmount(amount);

@@ -78,7 +78,7 @@ class TransactionProvider with ChangeNotifier {
   Future<bool> addTransaction(Transaction transaction) async {
     try {
       final response = await _transactionService.createTransaction(
-        ledgerId: _currentLedger!.id,
+        ledgerId: _currentLedger?.id ?? '',  // 个人模式下传空字符串
         categoryId: transaction.categoryId,
         type: transaction.type,
         amount: transaction.amount,
@@ -88,6 +88,7 @@ class TransactionProvider with ChangeNotifier {
 
       if (response.isSuccess && response.data != null) {
         _transactions.insert(0, response.data!);
+        _errorMessage = '';
         notifyListeners();
         return true;
       } else {
