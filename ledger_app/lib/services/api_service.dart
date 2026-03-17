@@ -2,8 +2,13 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
+  // 单例模式
+  static final ApiService _instance = ApiService._internal();
+  factory ApiService() => _instance;
+  ApiService._internal();
+
   // 生产环境API地址
-  static const String baseUrl = 'http://43.156.13.236:8080/api/v1';
+  static const String baseUrl = 'http://43.156.13.236/api/v1';
 
   // 开发环境（模拟器）使用: static const String baseUrl = 'http://10.0.2.2:8080/api/v1';
 
@@ -22,7 +27,8 @@ class ApiService {
   // 获取请求头
   Map<String, String> _getHeaders({bool needAuth = true}) {
     final headers = <String, String>{
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json; charset=utf-8',
+      'Accept': 'application/json; charset=utf-8',
     };
 
     if (needAuth && _token != null) {
@@ -72,5 +78,10 @@ class ApiService {
   Future<http.Response> delete(String path) async {
     final url = Uri.parse('$baseUrl$path');
     return await http.delete(url, headers: _getHeaders());
+  }
+
+  // 解析JSON响应
+  Map<String, dynamic> parseJson(String responseBody) {
+    return jsonDecode(responseBody);
   }
 }
